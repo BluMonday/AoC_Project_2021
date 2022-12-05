@@ -1,4 +1,5 @@
 import dayone as aoc
-puzzle_input = "day1_test.txt"
+f = open('day1_test.txt')
+puzzle_input = f.read()
 print(aoc.puzzle_one(puzzle_input))
 print(aoc.puzzle_two(puzzle_input))

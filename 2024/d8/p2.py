@@ -2,6 +2,13 @@ from collections import defaultdict
 from collections import namedtuple
 
 class Point(namedtuple('Point', 'x y')):
+    def in_bounds(self):
+        global width
+        global height
+        if self.x >= 0 and self.x < width and self.y >= 0 and self.y < height:
+            return True
+        else:
+            return False
     def multiply(self, scalar):
         return Point(self.x*scalar, self.y*scalar)
     def __add__(self, other):
@@ -21,14 +28,33 @@ def get_nodes(pt1, pt2):
     a = pt1.multiply(2)-pt2
     b = pt2.multiply(2)-pt1
     return a,b
+def get_nodes2(pt1, pt2):
+    nodes = []
+    i = 1
+    while True:
+        a = pt1.multiply(i) - pt2.multiply(i-1)
+        if a.in_bounds():
+            nodes.append(a)
+            i += 1
+        else:
+            break
+    i = 1
+    while True:
+        b = pt2.multiply(i) - pt1.multiply(i-1)
+        if b.in_bounds():
+            nodes.append(b)
+            i += 1
+        else:
+            break
+
+    return nodes
 
 def process_ant(ant_list, node_list):
     pt1 = ant_list[0]
     ant_list = ant_list[1:]
     for x in ant_list:
-        a, b = get_nodes(pt1, x)
-        node_list.append(a)
-        node_list.append(b)
+        nodes = get_nodes2(pt1, x)
+        node_list += nodes
     if len(ant_list) == 1:
         return node_list
     else:

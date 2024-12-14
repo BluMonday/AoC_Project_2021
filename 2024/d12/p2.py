@@ -1,24 +1,67 @@
 from collections import defaultdict
 from collections import namedtuple
-
-
 class Region:
     def __init__(self, initial_pt):
         self.plant_type = grid[initial_pt]
         self.pts = {initial_pt}
         self.price = 0
 
-    def get_price(self):
-        perimeter = 0
-        for pt in self.pts:
-            pt_score = len([x for x in pt.udlr() if x not in self.pts])
-            perimeter += pt_score
-        self.price = perimeter * len(self.pts)
-        return self.price
+    def calc_price(self):
+        top_pts = set()
+        [top_pts.add(pt) for pt in self.pts if pt.up() not in self.pts]
+        right_pts = set()
+        [right_pts.add(pt) for pt in self.pts if pt.right() not in self.pts]
+        left_pts = set()
+        [left_pts.add(pt) for pt in self.pts if pt.left() not in self.pts]
+        bottom_pts = set()
+        [bottom_pts.add(pt) for pt in self.pts if pt.down() not in self.pts]
+
+        top_edges = set()
+        for start_pt in top_pts:
+            next_pt = start_pt.right()
+            while True:
+                if next_pt in top_pts:
+                    next_pt = next_pt.right()
+                    continue
+                else:
+                    top_edges.add(next_pt)
+                    break
+        right_edges = set()
+        for start_pt in right_pts:
+            next_pt = start_pt.down()
+            while True:
+                if next_pt in right_pts:
+                    next_pt = next_pt.down()
+                    continue
+                else:
+                    right_edges.add(next_pt)
+                    break
+        bottom_edges = set()
+        for start_pt in bottom_pts:
+            next_pt = start_pt.right()
+            while True:
+                if next_pt in bottom_pts:
+                    next_pt = next_pt.right()
+                    continue
+                else:
+                    bottom_edges.add(next_pt)
+                    break
+        left_edges = set()
+        for start_pt in left_pts:
+            next_pt = start_pt.down()
+            while True:
+                if next_pt in left_pts:
+                    next_pt = next_pt.down()
+                    continue
+                else:
+                    left_edges.add(next_pt)
+                    break
+
+        num_sides = len(top_edges) + len(right_edges) + len(bottom_edges) + len(left_edges)
+        return num_sides * len(self.pts)
 
     def __str__(self):
-        price = self.get_price()
-        return f'A region of {self.plant_type} with price {price}'
+        return f'A region of {self.plant_type} with size {len(self.pts)}'
 
 
 
@@ -95,8 +138,7 @@ if __name__ == '__main__':
         active_reg = Region(start_pt)
         process_pt(active_reg, start_pt)
         regions.append(active_reg)
-        print(active_reg)
-        total_price += active_reg.price
+        total_price += active_reg.calc_price()
         pass
 
     print(f'Total Price: {total_price}')

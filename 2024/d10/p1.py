@@ -1,21 +1,29 @@
 from collections import defaultdict
 from collections import namedtuple
 
+
 class Point(namedtuple('Point', 'x y')):
     def multiply(self, scalar):
         return Point(self.x*scalar, self.y*scalar)
+
     def __add__(self, other):
         return Point(self.x + other.x, self.y + other.y)
+
     def __sub__(self, other):
         return Point(self.x - other.x, self.y - other.y)
+
     def up(self):
         return Point(self.x, self.y-1)
+
     def down(self):
         return Point(self.x, self.y+1)
+
     def left(self):
         return Point(self.x-1, self.y)
+
     def right(self):
         return Point(self.x+1, self.y)
+
 
 def print_grid():
     f = open('out.txt', 'w')
@@ -26,30 +34,29 @@ def print_grid():
         f.write(ln+'\n')
     f.close()
 
-def id_next_step(start_pt):
+
+def climb_to_top(t, start_pt):
     start_ht = grid[start_pt]
-    if start_ht < 9:
-        next_ht = start_ht + 1
-        summit = False
-    else:
-        summit = True
-        next_ht = start_ht
-    next_step = []
-    up = start_pt.up()
-    down = start_pt.down()
-    left = start_pt.left()
-    right = start_pt.right()
-    directions = [up, down, left, right]
-    next_step = [x for x in directions if grid[x] == next_ht]
-    if summit:
-        for pt in next_step:
+    global score
+    if start_ht == 9 and start_pt not in trailhead_summits[t]:
+        score += 1
+        trailhead_summits[t].append(start_pt)
+        return
+    elif start_ht < 9:
+        up = start_pt.up()
+        down = start_pt.down()
+        left = start_pt.left()
+        right = start_pt.right()
+        directions = [up, down, left, right]
+        next_steps = [x for x in directions if grid[x] == start_ht + 1]
+        for step in next_steps:
+            climb_to_top(t, step)
+    return
 
-
-    return next_step
 
 if __name__ == '__main__':
 
-    f = open('in1.txt')
+    f = open('in2.txt')
     inp = f.read().split('\n')
     grid = defaultdict(lambda: -1)
 
@@ -57,7 +64,8 @@ if __name__ == '__main__':
     height = len(inp)
 
     trailheads = []
-    su
+    trailhead_summits = defaultdict(list)
+    score = 0
 
     for y, line in enumerate(inp):
         for x, c in enumerate(line):
@@ -66,17 +74,13 @@ if __name__ == '__main__':
             if c == '0':
                 trailheads.append(pt)
 
-
     for t in trailheads:
-        next_steps = id_next_step(t)
-        while True:
-            if len(next_steps) == 0 and
-            for step in next_steps:
-
-
-            break
+        score_prev = score
+        climb_to_top(t, t)
+        this_trail_score = score - score_prev
+        print(f'Trailhead: {t} Score: {this_trail_score}')
         pass
-
+    print(f'Total map score: {score}')
     print_grid()
 
     pass

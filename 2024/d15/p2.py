@@ -29,36 +29,80 @@ class Point(namedtuple('Point', 'x y')):
     def udlr(self):
         return [self.up(), self.down(), self.left(), self.right()]
 
+    def gps_coord(self):
+        return 100*self.y + self.x
+
+def try_move(start_pt, mov_dir):
+    thing = grid[start_pt]
+    next_pt = mov_dir(start_pt)
+    next_thing = grid[next_pt]
+
+    if next_thing == '.':
+        # just move
+        grid[start_pt] = '.'
+        grid[next_pt] = thing
+        return True
+    elif next_thing == '#':
+        # can't move
+        return False
+    elif next_thing == 'O':
+        # check if next object can move
+        next_thing_movable = try_move(next_pt, mov_dir)
+        if next_thing_movable:
+            # move this thing
+            grid[start_pt] = '.'
+            grid[next_pt] = thing
+            return True
+        else:
+            # don't move
+            return False
+
 class Gaurd:
     def __str__(self):
-        return f'p={self.position} v={self.vel}'
+        return f'p={self.position}'
 
     position = Point(0, 0)
-    vel = Point(0, 0)
 
-    def move(self):
+    def move(self, cmd):
         global height
         global width
-        next_pos = self.position + self.vel
-        if next_pos.x >= width:
-            next_pos -= Point(width, 0)
-        elif next_pos.x < 0:
-            next_pos += Point(width, 0)
-        if next_pos.y >= height:
-            next_pos -= Point(0, height)
-        elif next_pos.y < 0:
-            next_pos += Point(0, height)
-        self.position = next_pos
-        return next_pos
+        mov_dir = Point.right
+        rev_dir = Point.left
+        match cmd:
+            case '<':
+                mov_dir = Point.left
+                rev_dir = Point.right
+            case '>':
+                mov_dir = Point.right
+                rev_dir = Point.left
+            case '^':
+                mov_dir = Point.up
+                rev_dir = Point.down
+            case 'v':
+                mov_dir = Point.down
+                rev_dir = Point.up
 
-def init_grid():
-    for y in range(height):
-        for x in range(width):
+        if try_move(self.position, mov_dir):
+            self.position = mov_dir(self.position)
+        return
+
+def find_in_grid(value):
+    for k, v in grid.items():
+        if v == value:
+            return k
+def init_grid(inp):
+    for y, line in enumerate(inp):
+        for x, c in enumerate(line):
             pt = Point(x,y)
-            grid[pt] = '.'
-def print_grid(seconds):
-    f = open('out1.txt', 'a')
-    f.write(f'After {seconds} seconds\n')
+            grid[pt] = c
+
+def print_grid(move, move_dir):
+    if move == 0:
+        f = open('log.txt', 'w')
+        f.write(f'Initial State:\n')
+    else:
+        f = open('log.txt', 'a')
+        f.write(f'{move} move {move_dir}:\n')
     for y in range(height):
         ln = ''
         for x in range(width):
@@ -72,46 +116,27 @@ if __name__ == '__main__':
 
     config = 2
     f = open(f'in{config}.txt')
-    inp = f.read().split('\n')
+    inp = f.read().split('\n\n')
+    grid_inp = inp[0].split('\n')
+    moves_inp = inp[1]
+    moves_inp = moves_inp.replace('\n', '')
     grid = defaultdict(lambda: '.')
 
-    if config == 1:
-        width = 11
-        height = 7
-    else:
-        width = 101
-        height = 103
+    init_grid(grid_inp)
+    guard = Gaurd()
+    guard.position = find_in_grid('@')
 
-    gaurds = []
-    for line in inp:
-        g = Gaurd()
-        mp = re.search(r'p=(-?\d*),(-?\d*)', line)
-        mv = re.search(r'v=(-?\d*),(-?\d*)', line)
-        g.position = Point(int(mp.group(1)), int(mp.group(2)))
-        g.vel = Point(int(mv.group(1)), int(mv.group(2)))
-        gaurds.append(g)
-
-    seconds = 0
-    while seconds != 8169:
-        init_grid()
-        print(f'After {seconds} seconds')
-        for g in gaurds:
-            grid[g.position] = 'X'
-        [g.move() for g in gaurds]
-        if (seconds-88) % 101 == 0 or (seconds-31) % 103 == 0:
-            print_grid(seconds)
-        if seconds % 10000 == 0:
-            break
-        seconds += 1
-    # answer 8168
-    half_width = width//2
-    half_height = height//2
-
-    nw = sum([grid[Point(x, y)] for x in range(half_width) for y in range(half_height)])
-    ne = sum([grid[Point(x, y)] for x in range(half_width+1, width) for y in range(half_height)])
-    sw = sum([grid[Point(x, y)] for x in range(half_width) for y in range(half_height+1, height)])
-    se = sum([grid[Point(x, y)] for x in range(half_width+1, width) for y in range(half_height+1, height)])
+    width = len(grid_inp[0])
+    height = len(grid_inp)
 
 
-    print(f'Safety Factor: {nw*ne*sw*se}')
+    moves = 0
+    print_grid(moves, '')
+    for m in moves_inp:
+        guard.move(m)
+        moves += 1
+        print_grid(moves, m)
+        pass
+
+    print(sum([p.gps_coord() for p in grid.keys() if grid[p] == 'O']))
     pass

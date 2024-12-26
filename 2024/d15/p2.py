@@ -193,7 +193,7 @@ def print_grid(move, move_dir):
 
 if __name__ == '__main__':
 
-    config = 3
+    config = 2
     f = open(f'in{config}.txt')
     inp = f.read().split('\n\n')
     grid_inp = inp[0].split('\n')
@@ -218,4 +218,5 @@ if __name__ == '__main__':
         pass
 
     print(sum([p.gps_coord() for p in grid.keys() if grid[p] == 'O']))
+    print(sum([p.gps_coord() for p in grid.keys() if grid[p] == '[']))
     pass

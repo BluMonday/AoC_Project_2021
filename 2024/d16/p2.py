@@ -1,222 +1,148 @@
 from collections import defaultdict
 from collections import namedtuple
-import re
+from collections import deque
 
-class Point(namedtuple('Point', 'x y')):
+class Coord(namedtuple('Coord', 'x y')):
     def __str__(self):
         return f'({self.x},{self.y})'
     def multiply(self, scalar):
-        return Point(self.x*scalar, self.y*scalar)
+        return Coord(self.x * scalar, self.y * scalar)
 
     def __add__(self, other):
-        return Point(self.x + other.x, self.y + other.y)
+        return Coord(self.x + other.x, self.y + other.y)
 
     def __sub__(self, other):
-        return Point(self.x - other.x, self.y - other.y)
+        return Coord(self.x - other.x, self.y - other.y)
 
     def up(self):
-        return Point(self.x, self.y-1)
+        return Coord(self.x, self.y - 1)
 
     def down(self):
-        return Point(self.x, self.y+1)
+        return Coord(self.x, self.y + 1)
 
     def left(self):
-        return Point(self.x-1, self.y)
+        return Coord(self.x - 1, self.y)
 
     def right(self):
-        return Point(self.x+1, self.y)
+        return Coord(self.x + 1, self.y)
 
     def udlr(self):
         return [self.up(), self.down(), self.left(), self.right()]
-
-    def gps_coord(self):
-        return 100*self.y + self.x
-def try_move_boxes(start_row, mov_dir):
-    # start with list of '['
-    next_pts = []
-    for pt in start_row:
-        # adjacent to each [
-        next_pts.append(mov_dir(pt))
-        # adjacent to each ]
-        next_pts.append(mov_dir(pt.right()))
-    next_things = [grid[x] for x in next_pts]
-
-    if all([x in '.' for x in next_things]):
-        # just move
-        for pt in start_row:
-            grid[pt] = '.'
-            grid[pt.right()] = '.'
-        for pt in start_row:
-            grid[mov_dir(pt)] = '['
-            grid[mov_dir(pt.right())] = ']'
-        return True
-    elif any([x in '#' for x in next_things]):
-        # can't move
-        return False
-    else :
-        # touching only boxes and empty space
-        # collect left edges of next boxes and call recursively
-        next_row = [p for p, t in zip(next_pts, next_things) if t in '[']
-        for p, t in zip(next_pts, next_things):
-            if t in ']': next_row.append(p.left())
-        next_boxes_movable = try_move_boxes(next_row, mov_dir)
-        if next_boxes_movable:
-            # move this thing
-            for pt in start_row:
-                grid[pt] = '.'
-                grid[pt.right()] = '.'
-            for pt in start_row:
-                grid[mov_dir(pt)] = '['
-                grid[mov_dir(pt.right())] = ']'
-            return True
-        else:
-            # don't move
-            return False
-
-def try_move_h(start_pt, mov_dir):
-    thing = grid[start_pt]
-    next_pt = mov_dir(start_pt)
-    next_thing = grid[next_pt]
-
-    if next_thing in '.':
-        # just move
-        grid[start_pt] = '.'
-        grid[next_pt] = thing
-        return True
-    elif next_thing in '#':
-        # can't move
-        return False
-    elif next_thing in '[]':
-        # check if next object can move
-        next_thing_movable = try_move_h(next_pt, mov_dir)
-        if next_thing_movable:
-            # move this thing
-            grid[start_pt] = '.'
-            grid[next_pt] = thing
-            return True
-        else:
-            # don't move
-            return False
-
-def try_move_v(start_pt, mov_dir):
-    thing = grid[start_pt]
-    next_pt = mov_dir(start_pt)
-    next_thing = grid[next_pt]
-
-    if next_thing in '.':
-        # just move
-        grid[start_pt] = '.'
-        grid[next_pt] = thing
-        return True
-    elif next_thing in '#':
-        # can't move
-        return False
-    elif next_thing in '[]':
-        # check if next object can move
-        next_row = next_pt
-        if next_thing in ']':
-            next_row = next_pt.left()
-        next_thing_movable = try_move_boxes([next_row], mov_dir)
-        if next_thing_movable:
-            # move this thing
-            grid[start_pt] = '.'
-            grid[next_pt] = thing
-            return True
-        else:
-            # don't move
-            return False
-
-class Gaurd:
-    def __str__(self):
-        return f'p={self.position}'
-
-    position = Point(0, 0)
-
-    def move(self, cmd):
-        global height
-        global width
-        mov_dir = Point.right
-        match cmd:
+class Reindeer:
+    def __init__(self, coord, dir, path, score):
+        self.coord = coord
+        self.dir = dir
+        self.path = path # a list of coords
+        self.score = score
+    def move(self):
+        next_rd = Reindeer(self.coord, self.dir, self.path.copy(), self.score+1)
+        match self.dir:
             case '<':
-                mov_dir = Point.left
+                next_rd.coord =  self.coord.left()
             case '>':
-                mov_dir = Point.right
+                next_rd.coord = self.coord.right()
             case '^':
-                mov_dir = Point.up
+                next_rd.coord = self.coord.up()
             case 'v':
-                mov_dir = Point.down
-        if mov_dir in [Point.left, Point.right]:
-            if try_move_h(self.position, mov_dir):
-                self.position = mov_dir(self.position)
-        else:
-            if try_move_v(self.position, mov_dir):
-                self.position = mov_dir(self.position)
-        return
-
+                next_rd.coord = self.coord.down()
+        next_rd.path.append(next_rd.coord)
+        return next_rd
+    def turn_left(self):
+        match self.dir:
+            case '<': return Reindeer(self.coord, 'v', self.path, self.score + 1000)
+            case '>': return Reindeer(self.coord, '^', self.path, self.score + 1000)
+            case '^': return Reindeer(self.coord, '<', self.path, self.score + 1000)
+            case 'v': return Reindeer(self.coord, '>', self.path, self.score + 1000)
+    def turn_right(self):
+        match self.dir:
+            case '<': return Reindeer(self.coord, '^', self.path, self.score + 1000)
+            case '>': return Reindeer(self.coord, 'v', self.path, self.score + 1000)
+            case '^': return Reindeer(self.coord, '>', self.path, self.score + 1000)
+            case 'v': return Reindeer(self.coord, '<', self.path, self.score + 1000)
 def find_in_grid(value):
     for k, v in grid.items():
         if v == value:
             return k
-def convert_for_p2(input):
-    match input:
-        case '.':
-            return '..'
-        case 'O':
-            return '[]'
-        case '@':
-            return '@.'
-        case '#':
-            return '##'
-
 def init_grid(inp):
     for y, line in enumerate(inp):
-        p2_line = ''.join([convert_for_p2(x) for x in line])
-        for x, c in enumerate(p2_line):
-            pt = Point(x,y)
+        for x, c in enumerate(line):
+            pt = Coord(x, y)
             grid[pt] = c
-
-def print_grid(move, move_dir):
-    if move == 0:
+def print_grid():
+    f = open('out.txt', 'w')
+    for y in range(height):
+        ln = ''
+        for x in range(width):
+            ln += str(grid[Coord(x, y)])
+        f.write(ln+'\n')
+    f.close()
+def print_log(i):
+    if i == 0:
         f = open('log.txt', 'w')
         f.write(f'Initial State:\n')
     else:
         f = open('log.txt', 'a')
-        f.write(f'{move} move {move_dir}:\n')
+        f.write(f'Iteration {i}:\n')
     for y in range(height):
         ln = ''
         for x in range(width):
-            ln += str(grid[Point(x,y)])
+            ln += str(grid[Coord(x, y)])
         f.write(ln+'\n')
     f.write('\n\n')
     f.close()
-
-
 if __name__ == '__main__':
 
     config = 2
     f = open(f'in{config}.txt')
-    inp = f.read().split('\n\n')
-    grid_inp = inp[0].split('\n')
-    moves_inp = inp[1]
-    moves_inp = moves_inp.replace('\n', '')
+    inp = f.read().split('\n')
     grid = defaultdict(lambda: '.')
+    scores = defaultdict(lambda: float('inf'))
+    width = len(inp[0])
+    height = len(inp)
+    init_grid(inp)
+    print_log(0)
 
-    init_grid(grid_inp)
-    guard = Gaurd()
-    guard.position = find_in_grid('@')
-
-    width = len(grid_inp[0])*2
-    height = len(grid_inp)
+    start_coord = find_in_grid('S')
+    end_coord = find_in_grid('E')
+    initial_rd = Reindeer(start_coord, '>', [start_coord], 0)
 
 
-    moves = 0
-    print_grid(moves, '')
-    for m in moves_inp:
-        guard.move(m)
-        moves += 1
-        print_grid(moves, m)
-        pass
+    # BFS to score paths through maze
+    queue = deque()
+    queue.append(initial_rd)
+    finishing_rd = []
+    while queue:
+        current_rd = queue.popleft()
 
-    print(sum([p.gps_coord() for p in grid.keys() if grid[p] == 'O']))
-    print(sum([p.gps_coord() for p in grid.keys() if grid[p] == '[']))
+        allowed_moves = [
+            current_rd.move(),
+            current_rd.turn_left().move(),
+            current_rd.turn_right().move(),
+        ]
+
+        for next_rd in allowed_moves:
+            if grid[next_rd.coord] in '#': continue
+            if grid[next_rd.coord] in '.E':
+                if next_rd.score < scores[next_rd.coord] + 2000:
+                    queue.append(next_rd)
+                    if next_rd.score < scores[next_rd.coord]:
+                        scores[next_rd.coord] = next_rd.score
+                if grid[next_rd.coord] in 'E':
+                    finishing_rd.append(next_rd)
+
+    best_score = scores[end_coord]
+
+
+    seats = set()
+    for rd in finishing_rd:
+        if rd.score == best_score:
+            seats |= set(rd.path)
+
+    for seat in seats:
+        grid[seat] = 'O'
+    print_grid()
+    print(f'best score: {best_score}')
+    print(f'seats: {len(seats)}')
+
+
     pass

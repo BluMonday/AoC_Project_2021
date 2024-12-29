@@ -41,7 +41,7 @@ def cdv(operand):
 
 if __name__ == '__main__':
 
-    f = open('in2.txt')
+    f = open('in3.txt')
     inp = f.read().split('\n\n')
     r_inp = inp[0]
     prog_inp = inp[1]

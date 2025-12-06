@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections import namedtuple
 import re
-import numpy as np
 
 
 def adv(operand):
@@ -17,7 +16,7 @@ def bst(operand):
     rB = operand % 8
 
 def jnz(operand, ip):
-    global rB
+    global rA
     if rA != 0:
         ip = operand - 2
     return ip
@@ -30,17 +29,19 @@ def out(operand):
     return f'{operand % 8}'
 
 def bdv(operand):
+    global rA
     global rB
-    rB = rB // 2 ** operand
+    rB = rA // (2 ** operand)
 
 def cdv(operand):
+    global rA
     global rC
-    rC = rC // 2 ** operand
+    rC = rA // (2 ** operand)
 
 
 if __name__ == '__main__':
 
-    f = open('in2.txt')
+    f = open('in3.txt')
     inp = f.read().split('\n\n')
     r_inp = inp[0]
     prog_inp = inp[1]
@@ -67,6 +68,8 @@ if __name__ == '__main__':
             combo_op = rB
         elif operand == 6:
             combo_op = rC
+        else:
+            pass
 
         # match opcode to operation
         match opcode:
@@ -89,5 +92,6 @@ if __name__ == '__main__':
         i += 2
 
     print(output[:-1])
+    print(f'rA: {rA}, rB: {rB}, rC: {rC}')
 
     pass

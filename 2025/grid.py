@@ -66,40 +66,13 @@ def init_grid(inp):
     for y, line in enumerate(inp):
         for x, c in enumerate(line):
             grid[Point(x,y)] = c
+
 if __name__ == '__main__':
 
-    f = open('in2.txt')
+    f = open('in1.txt')
     inp = f.read().split('\n')
-    grid = defaultdict(lambda: '#')
+    grid = defaultdict(lambda: '.')
     scores = defaultdict(lambda: 0)
     init_grid(inp)
     width = len(inp[0])
     height = len(inp)
-
-    start_pt = find_all_in_grid('S')[0]
-    grid[start_pt.s()] = '|'
-    scores[start_pt.s()] = 1
-    start = start_pt.s()
-    ans = 0
-    print_log(0)
-    for y in range(1,height):
-        # propagate into current row
-        beams = find_all_in_row('|', y)
-        for beam in beams:
-            if grid[beam.s()] == '^':
-                scores[beam.sw()] += scores[beam]
-                grid[beam.sw()] = '|'
-                scores[beam.se()] += scores[beam]
-                grid[beam.se()] = '|'
-            else:
-                scores[beam.s()] += scores[beam]
-                grid[beam.s()] = '|'
-        print_log(y)
-
-
-    # add up scores in final row
-    for k, v in scores.items():
-        if k.y == height - 1:
-            ans += v
-
-    print(ans)

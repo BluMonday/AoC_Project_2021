@@ -31,51 +31,29 @@ if __name__ == '__main__':
             distances.append((pts[i].distance(pts[j]), pts[i], pts[j]))
 
     distances.sort()
+    # init circuits
+    ckts = [set([p]) for p in pts]
     n = 0
-    ckts = []
-    while n < N:
-        # get next shortest distance
-        print(n)
-        if n == 173:
-            pass
-        d,a,b = distances.pop(0)
-        a_int = [c for c in ckts if a in c]
-        b_int = [c for c in ckts if b in c]
-        if len(a_int) == 0 and len(b_int) == 0:
-            # new circuit of ab
-            ckts.append([a,b])
-            # note a connection made
-            n += 1
-        elif len(a_int) == 1 and len(b_int) == 0:
-            # remove circuit and add b to it
-            c = ckts.pop(ckts.index(a_int[0]))
-            c.append(b)
-            ckts.append(c)
-            n += 1
-        elif len(a_int) == 0 and len(b_int) == 1:
-            # remove circuit and add a to it
-            c = ckts.pop(ckts.index(b_int[0]))
-            c.append(a)
-            ckts.append(c)
-            n += 1
-        elif a_int == b_int:
-            continue
-        elif set(a_int[0]) == set(b_int[0]):
+    while n < N-1:
+        # get junction pair with next shortest distance
+        d,j1,j2 = distances.pop(0)
+        j1_ckt = [c for c in ckts if set([j1]) <= c][0] # circuit containing j1
+        j2_ckt = [c for c in ckts if set([j2]) <= c][0] # circuit containing j2
+        if j1_ckt == j2_ckt:
             # a and b in same circuit already
+            if config == 2: n += 1
             continue
         else:
-            # a and b in different circuits, join them
-            ac = ckts.pop(ckts.index(a_int[0]))
-            bc = ckts.pop(ckts.index(b_int[0]))
-            ac.append(bc)
-            ckts.append(ac)
-            n +=1
-
-
+            # merge circuits containing j1 and j2 into a single circuit
+            ckts.remove(j1_ckt)
+            ckts.remove(j2_ckt)
+            ckts.append(j1_ckt | j2_ckt) # replace with union
+            n += 1 # consume cord
 
     sizes = [len(c) for c in ckts]
     sizes.sort(reverse=True)
-    score = sizes[0]*sizes[1]*sizes[2]
+    score = 1
+    for s in sizes[:3]: score *= s
 
 
     print(score)
